@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 
 
-function replaceSlashes(from: RegExp[], to: string)
+function replaceSlashes(from: RegExp[], to: string | string[])
 {
 	vscode.window.activeTextEditor?.selections.forEach((selection) => {
 		let start = vscode.window.activeTextEditor?.selection.start
@@ -18,9 +18,12 @@ function replaceSlashes(from: RegExp[], to: string)
 		}
 
 		let newContent = content
-		from.forEach((needle) => {
-			newContent = newContent.replace(needle, to);
-		});
+		for(var i = 0; i < from.length; ++i)
+		{
+			let cfrom = from[i];
+			let cto = Array.isArray(to) ? to[i] : to;
+			newContent = newContent.replace(cfrom, cto);
+		}
 		vscode.window.activeTextEditor?.edit((editBuilder) => editBuilder.replace(range, newContent))
 	});
 }
@@ -39,8 +42,10 @@ export function activate(context: vscode.ExtensionContext) {
 		replaceSlashes([/\\\\/g, /\//g] ,"\\");
 	});
 	let todouble = vscode.commands.registerCommand('pathfixer.tobackwarddouble', () => {
-		replaceSlashes([/\//g,  /(?<=[^\\])\\(?=[^\\])/g ] ,"\\\\");
-		// replaceSlashes([/([^\\])\\([^\\])/g] ,"\\\\");
+		// third option is a special case for \\ at start of string (windows network path)
+		replaceSlashes(
+			[/\//g,  /(?<=[^\\])\\(?=[^\\])/g, /(?<=^)\\\\(?=[^\\])/g] ,
+			["\\\\", "\\\\",									 "\\\\\\\\"]);
 	});
 
 	context.subscriptions.push(toforward);
